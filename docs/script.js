@@ -41,7 +41,7 @@
 	document.getElementById("mapCanvas").width = sw;
 	document.getElementById("mapCanvas").height = sh;
 	console.log("mapCanvas size: "+document.getElementById("mapCanvas").width+"x"+document.getElementById("mapCanvas").height);
-	status = window.localStorage.getItem('location');
+	status = window.localStorage.getItem('ClydeLocation');
 	console.log("status: "+status);
 	if(status) {
 		json = JSON.parse(status);
@@ -227,7 +227,7 @@
 		redraw(); // update track, route, places, etc
 		json=JSON.stringify(loc);
 		console.log("save location "+json);
-		 window.localStorage.setItem('location', json);
+		 window.localStorage.setItem('ClydeLocation', json);
 	}
 	
 	function dm(degrees, lat) {
