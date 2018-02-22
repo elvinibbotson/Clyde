@@ -305,7 +305,7 @@
     		console.log('active service worker found, no need to register')
 	} else {
 		navigator.serviceWorker
-        .register('./wpSW.js', {scope: './'})
+        .register('./sw.js', {scope: './'})
         .then(function() { console.log('Service Worker Registered'); });
 	}
   }
