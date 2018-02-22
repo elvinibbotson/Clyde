@@ -309,6 +309,9 @@
         .then(function() { console.log('Service Worker Registered'); });
 	}
   }
-  else console.log("not PWA friendly");
+  else {
+	  console.log("not PWA friendly");
+	  document.getElementById('heading').style.color = '#FF4';
+  }
 	
 })();
