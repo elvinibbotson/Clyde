@@ -1,0 +1,23 @@
+{
+  "name": "Clyde",
+  "short_name": "Clyde",
+  "icons": [{
+    "src": "/icons/icon75px.png",
+      "sizes": "75x75",
+      "type": "image/png"
+    },
+  {
+    "src": "/icons/icon150px.png",
+      "sizes": "150x150",
+      "type": "image/png"
+    },
+  {
+    "src": "/icons/icon512px.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }],
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#3E4EB8",
+  "theme_color": "#2F3BA2"
+}
