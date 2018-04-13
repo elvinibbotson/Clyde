@@ -1,6 +1,8 @@
 {
   "name": "Clyde",
   "short_name": "Clyde",
+  "display":"fullscreen",
+  "orientation":"portrait",
   "icons": [{
     "src": "/icons/icon75px.png",
       "sizes": "75x75",

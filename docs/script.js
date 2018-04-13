@@ -217,7 +217,7 @@
 				mapCanvas.font = 'Bold 48px Sans-Serif';
 				mapCanvas.fillText(d,sw-5,110);
 				mapCanvas.textAlign = 'left';
-				notify("display heading and slope");
+				notify("display heading");
 				d=Math.round((heading+11.25)/22.5); // 16 compass directions: N, NNE, NE,...
 				d=compass.substr(d*3,3); // compass point eg. NNE
 			}
