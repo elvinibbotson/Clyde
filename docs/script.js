@@ -12,17 +12,17 @@
 	var status; // location
 	var json;
 	var tracking = false;
-    var geolocator = null;
-	var track = []; // array of track objects - locations, altitudes, timestamps, lengths, durations,...
-	var waypoints=[]; //waypoints
+	var geolocator = null;
 	var loc={};
-	var alt, accuracy, dist, heading, speed, slope; // GPS fix data
-	var ascent, descent; // total climbing up/down along track
-	var deg = "&#x02DA;";
+	var fix;
+	var fixes=[];
+	var track = []; // array of track objects - locations, altitudes, timestamps, lengths, durations,...
+	var accuracy, dist, distance, heading, speed; // fix & track data
+	var deg = "&#176;";
+	var compass="N  NNENE ENEE  ESESE SSES  SSWSW WSWW  WNWNW NNWN  "
+	var notifications=[];
 	
 	console.log("variables initialised");
-	// document.getElementById("buttonStartStop").addEventListener("click", go);
-	document.getElementById("wpButton").addEventListener("click", addWP);
 	document.getElementById("actionButton").addEventListener("click", go);
 	document.getElementById("mapOverlay").addEventListener("click", moveTo);
 	loc.lat = 55.773;
@@ -51,8 +51,21 @@
 		console.log("loc: "+loc.lat+","+loc.lon);
 	}
 	centreMap(); // go to saved location
+	status = window.localStorage.getItem('ClydeTrip'); // recover previous trip stats
+	notify("trip status: "+status);
+	if(status) {
+		json=JSON.parse(status);
+		var text="last trip distance: "+json.distance+" nm in ";
+		if(json.time>60) text+=Math.floor(json.time/60)+" hr ";
+		text+=json.time%60+" min; speed: "+Math.round(json.distance*60/json.time)+" knots; ";
+		alert(text);
+	}
 	
 	function moveTo(event) {
+		if(tracking) {
+			showNotifications(); // show testing diagnostics
+			return;
+		}
 		x=sw/2-event.clientX;
 		y=sh/2-event.clientY;
 		console.log("move to "+x+", "+y+" from current position");
@@ -62,20 +75,37 @@
 		centreMap();
 	}
 	
-	function addWP() {
-		console.log("add waypoint at "+loc.lon+", "+loc.lat);
-		var wp={};
-		wp.lat=loc.lat;
-		wp.lon=loc.lon;
-		waypoints.push(wp)
+	function addTP() {
+		notify("add trackpoint "+track.length);
+		var tp={};
+		tp.lon=loc.lon;
+		tp.lat=loc.lat;
+		tp.time=loc.time;
+		track.push(tp);
+		redraw();
+		if(track.length<2) return;
+		var trip={};
+		trip.distance=decimal((distance+dist)/1852); // nautical miles
+		trip.time=Math.round((loc.time-track[0].time)/60); // minutes
+		var json=JSON.stringify(trip);
+		// console.log("save trip "+json);
+		window.localStorage.setItem('ClydeTrip', json);
 	}
 	
 	function go() {
 		console.log("go.... start tracking geolocation");
 		tracking = true;
 		track = [];
+		loc={};
+		distance = 0;
+		heading = 0;
+		speed = 0;
+		notify("start tracking");
+		fix=0;
+		fixes=[];
 	    if (navigator.geolocation) {
-        		geolocator = navigator.geolocation.watchPosition(logPosition);
+			var opt={enableHighAccuracy: true, timeout: 15000, maximumAge: 0};
+        		geolocator = navigator.geolocation.watchPosition(sampleLocation,locationError,opt);
     		} else  {
        		alert("Geolocation is not supported by this browser.");
     		}
@@ -85,131 +115,129 @@
 		document.getElementById("actionButton").addEventListener("click", cease);
 	}
 	
-	function logPosition(position) {
-		var interval, n;
-		loc.lat = position.coords.latitude;
-		loc.lon = position.coords.longitude;
-		console.log("fix at N: "+loc.lat+" E: "+loc.lon);
+	function sampleLocation(position) {
+		var accuracy=position.coords.accuracy;
+		notify("fix "+fix+" accuracy: "+accuracy);
+		console.log("at "+position.coords.longitude+","+position.coords.latitude)
+		if(accuracy>50) return; // skip inaccurate fixes
+		fixes[fix]={};
+		fixes[fix].lon=position.coords.longitude;
+		fixes[fix].lat=position.coords.latitude;
+		fix++;
+		if(fix<3) return;
+		fix=0; // reset to get next three sample fixes
 		var now=new Date();
-		var fix={};
-		fix.time=now.getTime()/1000; // seconds
-		fix.lat=loc.lat;
-		fix.lon=loc.lon;
-		fix.alt = Math.round(position.coords.altitude); // nearest m
-		alt = fix.alt;
-	    accuracy = position.coords.accuracy;
-		console.log("altitude: "+fix.alt+"; accuracy: "+accuracy);
-		track.push(fix);
-		// new averaging code...
-		n = track.length;
-		if(n>1) { // restart track after >2min sleep
-			interval = fix.time - track[n-2].time;
-			if(interval>120) track=[];
+		loc.time=Math.round(now.getTime()/1000); // whole seconds
+		loc.lon=(fixes[0].lon+fixes[1].lon+fixes[2].lon)/3; // average location data
+		loc.lat=(fixes[0].lat+fixes[1].lat+fixes[2].lat)/3;
+		// ALLOW TESTING AT IDRIDGEHAY
+		loc.lon-=3.301276;
+		loc.lat+=2.74155;
+		// END OF TEST CODE		
+		notify(loc.lon+","+loc.lat+", accuracy:"+accuracy);
+		if(track.length<1) addTP(); // add first trackpoint at start
+		else {
+			var t=track.length-1; // most recent trackpoint
+			// notify("latest trackpoint; "+t);
+			dist=measure("distance",loc.lon,loc.lat,track[t].lon,track[t].lat); // distance since last trackpoint
+			var interval=loc.time-track[t].time;
+			// notify("times: "+loc.time+", "+track[t].time);
+			// notify("dist: "+Math.round(dist)+"m interval: "+interval+"s");
+			if(dist>0 && interval>0) speed = 1.944012 * dist / interval; // current speed knots
+			speed = Math.round(speed); // nearest mph
+			var direction=measure("heading",track[t].lon,track[t].lat,loc.lon,loc.lat); // heading since last trackpoint
+			var turn=Math.abs(direction-heading);
+			if(turn>180) turn=360-turn;
+			notify("speed: "+speed+"knots; turn: "+Math.round(turn));
+			if((dist>100)||(turn>30)) { // add trackpoint after 100m or when direction changes > 30*
+			// if(dist>25) { // JUST FOR TESTING
+				distance=distance+Math.round(dist);
+				heading=Math.round(direction);
+				addTP();
+				dist=0;
+			}
 		}
-		if(n==3) { // first averaging over 3 fixes}
-			track[1].lat = (track[0].lat + track[1].lat + track[2].lat)/3;
-			track[1].lon = (track[0].lon + track[1].lon + track[2].lon)/3;
-			track[1].alt = (track[0].alt + track[1].alt + track[2].alt)/3;
-		}
-		else if(n==4) {
-			track[2].lat = (track[1].lat + track[2].lat + track[3].lat)/3;
-			track[1].lon = (track[1].lon + track[2].lon + track[3].lon)/3;
-			track[1].alt = (track[1].alt + track[2].alt + track[3].alt)/3;
-		}
-		else if(n>=5) { // after first 5 fixes, average over most recent 5
-			track[n-3].lat = (track[n-5].lat + track[n-4].lat + track[n-3].lat + track[n-2].lat + track[n-1].lat)/5;
-			track[n-3].lon = (track[n-5].lon + track[n-4].lon + track[n-3].lon + track[n-2].lon + track[n-1].lon)/5;
-			track[n-3].alt = (track[n-5].alt + track[n-4].alt + track[n-3].alt + track[n-2].alt + track[n-1].alt)/5;
-		}
-		if(n==1) {
-			dist = 0;
-			speed = 0;
-	        heading = 0;
-		}
-		else if (n<6) { // less accurate earlier speed & heading
-			dist = distance(track[0].lon, track[0].lat, fix.lon, fix.lat, "deg");
-			interval = fix.time - track[0].time;
-			speed = 2.237136 * dist / interval; // current speed mph
-			heading = bearing(track[0].lon,track[0].lat,fix.lon,fix.lat,'deg');
-		}
-		else if(n==6) {
-			dist = distance(track[1].lon, track[1].lat, track[4].lon, track[4].lat, "deg");
-			interval = track[4].time - track[1].time;
-			speed = 2.237136 * dist / interval; // current speed mph
-			heading = bearing(track[1].lon,track[1].lat,track[4].lon,track[4].lat,'deg');
-		}
-		else { // averaged speed & heading
-			dist = distance(track[n-7].lon, track[n-7].lon, track[n-3].lon, track[n-3].lon, "deg");
-			interval = track[n-3].time - track[n-7].time;
-			speed = 1.944 * dist / interval; // current speed knots
-			heading = bearing(track[n-7].lon,track[n-7].lat,track[n-3].lon,track[n-3].lat,'deg');
-		}
-		heading = Math.round(heading);
 		centreMap();
+	}
+	
+	function locationError(error) {
+		var message="";
+		switch (error.code) {
+			case error.PERMISSION_DENIED:
+				message="location request denied";
+				break;
+			case error.POSITION_UNAVAILABLE:
+				message="location not available";
+				break;
+			case error.TIMEOUT:
+				message="location timeout";
+				break;
+			case error.UNKNOWN_ERROR:
+				message="unknown loaction error";
+		}
+		alert(message);
 	}
 	
 	function cease(event) {
 		console.log("stop tracking ... "+track.length+" fixes");
 		tracking = false;
 		navigator.geolocation.clearWatch(geolocator);
-		// document.getElementById("buttonStartStop").style.background = "url(goButton24px.svg) center center no-repeat";
 		document.getElementById("actionButton").innerHTML='<img src="goButton24px.svg"/>';
 		document.getElementById("actionButton").removeEventListener("click", cease);
 		document.getElementById("actionButton").addEventListener("click", go);
-		document.getElementById("heading").innerHTML = "White Peak";
+		document.getElementById("heading").innerHTML = "Clyde";
 		redraw();
 	}
 
 	function redraw() {
-	    var i, p, x, y, r;	    
+	    var i, p, x, y, r, d;	    
 	    mapCanvas.clearRect(0, 0, sw, sh);
 		mapCanvas.lineWidth = 5;
 		mapCanvas.strokeStyle = 'rgba(0,0,255,0.3)';
-		mapCanvas.beginPath();
+		mapCanvas.fillStyle = 'rgba(0,0,0,0.7)';
+		mapCanvas.Baseline = 'top';
 	    if (tracking) { 
-			mapCanvas.fillStyle = 'rgba(0,0,0,0.7)';
-			mapCanvas.Baseline = 'top';
+			// notify("tracking - redraw");
 			mapCanvas.font = 'Bold 16px Sans-Serif';
 			mapCanvas.textAlign = 'left';
-			mapCanvas.fillText('mph',5,60);
-			mapCanvas.textAlign = 'right';
-			mapCanvas.fillText('%',sw-5,60);
+			mapCanvas.fillText('knots',5,60);
 			mapCanvas.font = 'Bold 64px Sans-Serif';
 			mapCanvas.textAlign = 'left';
 			mapCanvas.fillText(speed,5,110);
 			mapCanvas.textAlign = 'right';
-			mapCanvas.fillText(heading,sw-5,110);
-			r = accuracy * 0.216;
-			console.log("radius "+r);
-	        if (r < 5) r = 5;
-	        if (r > 100) r = 100;
-	        mapCanvas.arc(sw / 2, sh / 2, r, 0, Math.PI * 2); // location showed by blue circle indicating GPS accuracy if tracking GPS...
-	    } // ...otherwise just as small blue square
-	    else mapCanvas.rect(sw / 2 - 4, sh / 2 - 4, 8, 8);	
-		// draw small circles for waypoints
-		for(i in waypoints) {
-			var wp=waypoints[i];
-			 x = (wp.lon - loc.lon) * 4500 + sw / 2;
-	         y = (loc.lat - wp.lat) * 8100 + sh / 2;
-			mapCanvas.moveTo(x,y);
-			mapCanvas.arc(x, y, 3, 0, Math.PI * 2); 	
+			if(distance>0) { // display distance travelled
+				notify("display distance");
+				mapCanvas.textAlign = 'right';
+				d=distance+dist;
+				d/=1852; // nautical miles
+				d=decimal(d);
+				notify(d+"nm");
+				mapCanvas.font = 'Bold 16px Sans-Serif';
+				mapCanvas.fillText('nm',sw-5,60);
+				mapCanvas.font = 'Bold 48px Sans-Serif';
+				mapCanvas.fillText(d,sw-5,110);
+				mapCanvas.textAlign = 'left';
+				notify("display heading and slope");
+				d=Math.round((heading+11.25)/22.5); // 16 compass directions: N, NNE, NE,...
+				d=compass.substr(d*3,3); // compass point eg. NNE
+			}
+        		// draw current track as blue line
+	   		if (track.length > 1) {
+	        		console.log("draw track - length: " + track.length);
+	        		mapCanvas.beginPath();
+	        		p = track[0];
+	        		x = (p.lon - loc.lon) * 4500 + sw / 2;
+	        		y = (loc.lat - p.lat) * 8100 + sh / 2;
+	        		mapCanvas.moveTo(x, y);
+	        		for (i = 1; i < track.length; i++) {
+	            		p = track[i];
+	           		 x = (p.lon - loc.lon) * 4500 + sw / 2;
+	            		y = (loc.lat - p.lat) * 8100 + sh / 2;
+	            		mapCanvas.lineTo(x, y);
+	       		 }
+	    		}
 		}
-        // draw current track as blue line
-	    if (track.length > 1) {
-	        console.log("draw track - length: " + track.length);
-	        // mapCanvas.lineWidth = 3; 
-	        mapCanvas.beginPath();
-	        p = track[0];
-	        x = (p.lon - loc.lon) * 4500 + sw / 2;
-	        y = (loc.lat - p.lat) * 8100 + sh / 2;
-	        mapCanvas.moveTo(x, y);
-	        for (i = 1; i < track.length; i++) {
-	            p = track[i];
-	            x = (p.lon - loc.lon) * 4500 + sw / 2;
-	            y = (loc.lat - p.lat) * 8100 + sh / 2;
-	            mapCanvas.lineTo(x, y);
-	        }
-	    }
+		mapCanvas.rect(sw / 2 - 8, sh / 2 - 8, 16, 16);	 // blue square at current location
 		mapCanvas.stroke();
 	}
 	
@@ -253,38 +281,15 @@
 	    }
 	    return ddmm;
 	}
-
-	function distance(x0, y0, x, y, unit) {
-	    var dx = x - x0;
+	
+	function measure(type,x0,y0,x,y) {
+		var dx = x - x0;
 	    var dy = y - y0;
-	    switch (unit) { // if mode is "m" or omitted dx & dy unchanged
-	        case "deg":
-	            dx *= 62266; // allow for latitude
-	            dy *= 111111.111; // 90 deg = 10000 km
-	            break;
-	        case "px":
-	            dx *= 13.837; // 62266 m/degree / 4500 px/degree (eastwards)
-	            dy *= 13.717; // 111111.111 m/degree / 8100 px/degree (northwards)
-	            break;
-	    }
-	    return Math.sqrt(dx * dx + dy * dy);
-	}
-	// use bearing instead of altitude in Clyde PWA
-	function bearing(x0, y0, x, y, unit) {
-	    var h;
-	    var dx = x - x0;
-	    var dy = y - y0;
-	    switch (unit) { // if mode is "m" or omitted dx & dy unchanged
-			case "deg":
-	            dx *= 62266; // allow for latitude
-	            dy *= 111111.111; // 90 deg = 10000 km
-	            break;
-	        case "px":
-	            dx *= -13.837; // 62266 m/degree / 4500 px/degree (eastwards)
-	            dy *= 13.717; // 111111.111 m/degree / 8100 px/degree (northwards)
-	            break;
-	    }
-        if (dy == 0) {
+        dx *= 66610; // allow for latitude
+        dy *= 111111.111; // 90 deg = 10000 km
+		if(type=="distance") return Math.sqrt(dx * dx + dy * dy);
+		var h; // heading
+		if (dy == 0) {
 	        h = (dx > 0) ? 90 : 270;
 	    }
 	    else {
@@ -297,6 +302,20 @@
 
 	function decimal(n) {
 	    return Math.floor(n * 10 + 0.5) / 10;
+	}
+	
+	function notify(note) {
+		notifications.push(note);
+		while(notifications.length>10) notifications.shift();
+		console.log(note);
+	}
+	
+	function showNotifications() {
+		var message="";
+		for(var i in notifications) {
+			message+=notifications[i]+"; ";
+		}
+		alert(message);
 	}
 
 	// implement service worker if browser is PWA friendly 
@@ -311,7 +330,7 @@
   }
   else {
 	  console.log("not PWA friendly");
-	  document.getElementById('heading').style.color = '#FF4';
+	  document.getElementById('heading').style.color = 'yellow';
   }
 	
 })();
