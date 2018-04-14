@@ -220,6 +220,7 @@
 				notify("display heading");
 				d=Math.round((heading+11.25)/22.5); // 16 compass directions: N, NNE, NE,...
 				d=compass.substr(d*3,3); // compass point eg. NNE
+				mapCanvas.fillText(d,5,sh-25);
 			}
         		// draw current track as blue line
 	   		if (track.length > 1) {

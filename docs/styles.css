@@ -81,23 +81,7 @@ input, label, select {
   transition: transform 0.233s cubic-bezier(0, 0, 0.21, 1) 0.1s, -webkit-transform 0.233s cubic-bezier(0, 0, 0.21, 1) 0.1s;
   z-index: 1000;
   }
-  .header .headerButton {
-    width: 24px;
-    height: 24px;
-	margin-left: 10px;
-    margin-right: 24px;
-    overflow: hidden;
-    opacity: 1;
-	float: right;
-    -webkit-transition: opacity 0.333s cubic-bezier(0, 0, 0.21, 1);
-    transition: opacity 0.333s cubic-bezier(0, 0, 0.21, 1);
-    border: 1px yellow;
-    outline: 1px yellow;
-    cursor: pointer;
- }
-  .header #buttonStartStop{
-    background: url(goButton24px.svg) center center no-repeat;
- }
+  
 .header__title {
   font-weight: 400;
   font-size: 1em;
@@ -111,8 +95,8 @@ input, label, select {
 .round-button {
 	display: block;
 	position: fixed;
-	width: 40px;
-	height: 40px;
+	width: 50px;
+	height: 50px;
 	border: 0px solid #222;
 	border-radius: 50%;
 	background: #222;
@@ -124,7 +108,7 @@ input, label, select {
 	display: block;
 	width: 24px;
 	height: 24px;
-	padding: 8px;
+	padding: 13px;
 }
 
 #wpButton {
