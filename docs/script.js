@@ -22,14 +22,14 @@
 	var compass="N  NNENE ENEE  ESESE SSES  SSWSW WSWW  WNWNW NNWN  "
 	var notifications=[];
 	
-	console.log("variables initialised");
+	// console.log("variables initialised");
 	document.getElementById("actionButton").addEventListener("click", go);
 	document.getElementById("mapOverlay").addEventListener("click", moveTo);
 	loc.lat = 55.773;
 	loc.lon = -4.86;
 	sw = window.innerWidth;
 	sh = window.innerHeight;
-	console.log("screen size: "+sw+"x"+sh);
+	// console.log("screen size: "+sw+"x"+sh);
 	for (x = 0; x < 6; x++) { // build map by positioning 10x10 grid of tiles
 		for (var y = 0; y < 6; y++) {
 			var tile = document.getElementById("tile" + y + x);
@@ -40,19 +40,19 @@
 	mapCanvas = document.getElementById("mapCanvas").getContext("2d"); // set up drawing canvas
 	document.getElementById("mapCanvas").width = sw;
 	document.getElementById("mapCanvas").height = sh;
-	console.log("mapCanvas size: "+document.getElementById("mapCanvas").width+"x"+document.getElementById("mapCanvas").height);
+	// console.log("mapCanvas size: "+document.getElementById("mapCanvas").width+"x"+document.getElementById("mapCanvas").height);
 	status = window.localStorage.getItem('ClydeLocation');
-	console.log("status: "+status);
+	// console.log("status: "+status);
 	if(status) {
 		json = JSON.parse(status);
-		console.log("json: "+json);
+		// console.log("json: "+json);
 		loc.lat = json.lat;
 		loc.lon = json.lon;
-		console.log("loc: "+loc.lat+","+loc.lon);
+		// console.log("loc: "+loc.lat+","+loc.lon);
 	}
 	centreMap(); // go to saved location
 	status = window.localStorage.getItem('ClydeTrip'); // recover previous trip stats
-	notify("trip status: "+status);
+	// notify("trip status: "+status);
 	if(status) {
 		json=JSON.parse(status);
 		var text="last trip distance: "+json.distance+" nm in ";
@@ -68,10 +68,10 @@
 		}
 		x=sw/2-event.clientX;
 		y=sh/2-event.clientY;
-		console.log("move to "+x+", "+y+" from current position");
+		// console.log("move to "+x+", "+y+" from current position");
 		loc.lat+=y/8100;
 		loc.lon-=x/4050;
-		console.log("new location: "+loc.lat+", "+loc.lon);
+		// console.log("new location: "+loc.lat+", "+loc.lon);
 		centreMap();
 	}
 	
@@ -93,7 +93,7 @@
 	}
 	
 	function go() {
-		console.log("go.... start tracking geolocation");
+		// console.log("go.... start tracking geolocation");
 		tracking = true;
 		track = [];
 		loc={};
@@ -118,7 +118,7 @@
 	function sampleLocation(position) {
 		var accuracy=position.coords.accuracy;
 		notify("fix "+fix+" accuracy: "+accuracy);
-		console.log("at "+position.coords.longitude+","+position.coords.latitude)
+		// console.log("at "+position.coords.longitude+","+position.coords.latitude)
 		if(accuracy>50) return; // skip inaccurate fixes
 		fixes[fix]={};
 		fixes[fix].lon=position.coords.longitude;
@@ -130,10 +130,10 @@
 		loc.time=Math.round(now.getTime()/1000); // whole seconds
 		loc.lon=(fixes[0].lon+fixes[1].lon+fixes[2].lon)/3; // average location data
 		loc.lat=(fixes[0].lat+fixes[1].lat+fixes[2].lat)/3;
-		// ALLOW TESTING AT IDRIDGEHAY
+		/* ALLOW TESTING AT IDRIDGEHAY
 		loc.lon-=3.301276;
 		loc.lat+=2.74155;
-		// END OF TEST CODE		
+		// END OF TEST CODE	*/	
 		notify(loc.lon+","+loc.lat+", accuracy:"+accuracy);
 		if(track.length<1) addTP(); // add first trackpoint at start
 		else {
@@ -179,7 +179,7 @@
 	}
 	
 	function cease(event) {
-		console.log("stop tracking ... "+track.length+" fixes");
+		// console.log("stop tracking ... "+track.length+" fixes");
 		tracking = false;
 		navigator.geolocation.clearWatch(geolocator);
 		document.getElementById("actionButton").innerHTML='<img src="goButton24px.svg"/>';
@@ -224,7 +224,7 @@
 			}
         		// draw current track as blue line
 	   		if (track.length > 1) {
-	        		console.log("draw track - length: " + track.length);
+	        		// console.log("draw track - length: " + track.length);
 	        		mapCanvas.beginPath();
 	        		p = track[0];
 	        		x = (p.lon - loc.lon) * 4500 + sw / 2;
@@ -243,11 +243,11 @@
 	}
 	
 	function centreMap() { // move map to current location
-		console.log("centre map at "+loc.lat+", "+loc.lon);
+		// console.log("centre map at "+loc.lat+", "+loc.lon);
 	    var i, x, y;
 	    mapLeft = (mapW - loc.lon) * 4500 + sw / 2;
 	    mapTop = (loc.lat - mapN) * 8100 + sh / 2;
-		console.log("map position: "+mapLeft+", "+mapTop);
+		// console.log("map position: "+mapLeft+", "+mapTop);
 		var map = document.getElementById("map");
 		map.style.left = mapLeft+"px";
 		map.style.top = mapTop+"px";
@@ -255,8 +255,8 @@
 		document.getElementById('heading').innerHTML = string;
 		redraw(); // update track, route, places, etc
 		json=JSON.stringify(loc);
-		console.log("save location "+json);
-		 window.localStorage.setItem('ClydeLocation', json);
+		// console.log("save location "+json);
+		window.localStorage.setItem('ClydeLocation', json);
 	}
 	
 	function dm(degrees, lat) {
@@ -322,7 +322,7 @@
 	// implement service worker if browser is PWA friendly 
   if ('serviceWorker' in navigator) {
 	if (navigator.serviceWorker.controller) {
-    		console.log('active service worker found, no need to register')
+    		// console.log('active service worker found, no need to register')
 	} else {
 		navigator.serviceWorker
         .register('./sw.js', {scope: './'})
@@ -330,7 +330,7 @@
 	}
   }
   else {
-	  console.log("not PWA friendly");
+	  // console.log("not PWA friendly");
 	  document.getElementById('heading').style.color = 'yellow';
   }
 	
