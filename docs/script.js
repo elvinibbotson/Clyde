@@ -6,7 +6,7 @@
 	var mapCanvas; // canvas for on-screen graphics
 	var mapLeft, mapTop; // top-left of map relative to screen
 	var mapN = 56.1666667; // north and west edges of map (degrees)
-	var mapW = -5.26;
+	var mapW = -5.25;
 	var x, y, x0, y0; // horizontal and vertical coordinates/measurements
 	var offset = {};
 	var status; // location
@@ -26,7 +26,7 @@
 	document.getElementById("actionButton").addEventListener("click", go);
 	document.getElementById("mapOverlay").addEventListener("click", moveTo);
 	loc.lat = 55.773;
-	loc.lon = -4.86;
+	loc.lon = -4.9;
 	sw = window.innerWidth;
 	sh = window.innerHeight;
 	// console.log("screen size: "+sw+"x"+sh);
