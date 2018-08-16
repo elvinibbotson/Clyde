@@ -27,28 +27,31 @@
 	document.getElementById("mapOverlay").addEventListener("click", moveTo);
 	loc.lat = 55.773;
 	loc.lon = -4.9;
-	sw = window.innerWidth;
-	sh = window.innerHeight;
-	// console.log("screen size: "+sw+"x"+sh);
-	for (x = 0; x < 6; x++) { // build map by positioning 10x10 grid of tiles
+	sw=screen.width;
+	sh=screen.height-32;
+	console.log("window: "+sw+"x"+sh);
+	document.getElementById("mapScreen").style.width = sw+'px';
+	document.getElementById("mapScreen").style.height = sh+'px';
+	mapCanvas = document.getElementById("mapCanvas").getContext("2d"); // set up drawing canvas
+	document.getElementById("mapCanvas").width = sw;
+	document.getElementById("mapCanvas").height = sh;
+	document.getElementById("actionButton").style.left=(sw-70)+'px';
+	document.getElementById("actionButton").style.top=(sh-100)+'px';
+	console.log("action button moved!");
+	document.getElementById("actionButton").style.display='block';	
+	for (x = 0; x < 6; x++) { // build map by positioning 6x6 grid of tiles
 		for (var y = 0; y < 6; y++) {
 			var tile = document.getElementById("tile" + y + x);
 			tile.style.left = (x * 375) +'px';
 			tile.style.top = (y * 675) +'px';
 		}
 	}
-	mapCanvas = document.getElementById("mapCanvas").getContext("2d"); // set up drawing canvas
-	document.getElementById("mapCanvas").width = sw;
-	document.getElementById("mapCanvas").height = sh;
-	// console.log("mapCanvas size: "+document.getElementById("mapCanvas").width+"x"+document.getElementById("mapCanvas").height);
 	status = window.localStorage.getItem('ClydeLocation');
 	// console.log("status: "+status);
 	if(status) {
 		json = JSON.parse(status);
-		// console.log("json: "+json);
-		loc.lat = json.lat;
-		loc.lon = json.lon;
-		// console.log("loc: "+loc.lat+","+loc.lon);
+		if((json.lat>=55.666)&&(json.lat<=56.166)) 	loc.lat = json.lat;
+		if((json.lon>=-5.25)&&(json.lon<=-4.75)) loc.lon = json.lon;
 	}
 	centreMap(); // go to saved location
 	status = window.localStorage.getItem('ClydeTrip'); // recover previous trip stats
@@ -70,7 +73,7 @@
 		y=sh/2-event.clientY;
 		// console.log("move to "+x+", "+y+" from current position");
 		loc.lat+=y/8100;
-		loc.lon-=x/4050;
+		loc.lon-=x/4500;
 		// console.log("new location: "+loc.lat+", "+loc.lon);
 		centreMap();
 	}
@@ -320,18 +323,15 @@
 	}
 
 	// implement service worker if browser is PWA friendly 
-  if ('serviceWorker' in navigator) {
-	if (navigator.serviceWorker.controller) {
-    		// console.log('active service worker found, no need to register')
-	} else {
-		navigator.serviceWorker
-        .register('./sw.js', {scope: './'})
-        .then(function() { console.log('Service Worker Registered'); });
+  	if (navigator.serviceWorker.controller) {
+		console.log('Active service worker found, no need to register')
 	}
-  }
-  else {
-	  // console.log("not PWA friendly");
-	  document.getElementById('heading').style.color = 'yellow';
-  }
+	else { //Register the ServiceWorker
+		navigator.serviceWorker.register('sw.js', {
+			scope: '/Clyde/'
+		}).then(function(reg) {
+			console.log('Service worker has been registered for scope:'+ reg.scope);
+		});
+	}
 	
 })();
