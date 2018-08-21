@@ -1,7 +1,6 @@
 {
-  "name": "Clyde",
+  "name": "Clyde PWA",
   "short_name": "Clyde",
-  "orientation":"portrait",
   "icons": [
 	{
 		"src": "icons/icon192px.png",
@@ -12,7 +11,8 @@
 		"src": "icons/icon512px.png",
 		"sizes": "512x512",
 		"type": "image/png"
-	}],
+	}
+  ],
   "start_url": "/Clyde/",
   "display":"fullscreen",
   "orientation": "portrait",
