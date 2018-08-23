@@ -28,7 +28,7 @@
 	loc.lat = 55.773;
 	loc.lon = -4.9;
 	sw=screen.width;
-	sh=screen.height-32;
+	sh=screen.height;
 	console.log("window: "+sw+"x"+sh);
 	document.getElementById("mapScreen").style.width = sw+'px';
 	document.getElementById("mapScreen").style.height = sh+'px';
@@ -36,7 +36,7 @@
 	document.getElementById("mapCanvas").width = sw;
 	document.getElementById("mapCanvas").height = sh;
 	document.getElementById("actionButton").style.left=(sw-70)+'px';
-	document.getElementById("actionButton").style.top=(sh-100)+'px';
+	document.getElementById("actionButton").style.top=(sh-70)+'px';
 	console.log("action button moved!");
 	document.getElementById("actionButton").style.display='block';	
 	for (x = 0; x < 6; x++) { // build map by positioning 6x6 grid of tiles
